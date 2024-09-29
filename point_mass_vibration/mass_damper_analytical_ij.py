@@ -1,31 +1,31 @@
-import sympy as sp
+import sympy as sm
 import numpy as np
 import matplotlib.pyplot as plt
 
 # variables
-t = sp.Symbol('t')
-x = sp.Function('x')(t)
+t = sm.Symbol('t')
+x = sm.Function('x')(t)
 
 # constants
-m = sp.Symbol('m')
-c = sp.Symbol('c')
-k = sp.Symbol('k')
+m = sm.Symbol('m')
+c = sm.Symbol('c')
+k = sm.Symbol('k')
 
 # mass damper de in 1 dimension
-mass_damper = sp.Eq(m * x.diff(t, 2) + c * x.diff(t) + k * x, 0)
+mass_damper = sm.Eq(m * x.diff(t, 2) + c * x.diff(t) + k * x, 0)
 
 # solve the de
-x_solution = sp.dsolve(mass_damper, x)
+x_solution = sm.dsolve(mass_damper, x)
 x_general = x_solution.rhs
 x_prime = x_general.diff(t)
 
 # boundary conditions
-boundary_eq1 = sp.Eq(x_general.subs(t, 0), 1)
-boundary_eq2 = sp.Eq(x_prime.subs(t, 0), 0)
+boundary_eq1 = sm.Eq(x_general.subs(t, 0), 1)
+boundary_eq2 = sm.Eq(x_prime.subs(t, 0), 0)
 
 # solve for constants
-C1, C2 = sp.symbols('C1 C2')
-solution = sp.solve([boundary_eq1, boundary_eq2], (C1, C2))
+C1, C2 = sm.symbols('C1 C2')
+solution = sm.solve([boundary_eq1, boundary_eq2], (C1, C2))
 final_solution = x_general.subs(solution)
 
 # print the analytical solution
@@ -41,13 +41,13 @@ numerical_solution = final_solution.subs({m: m_val, c: c_val, k: k_val})
 
 # plotting
 t_domain = np.linspace(0, 50, 500)
-x_numeric = sp.lambdify(t, numerical_solution, 'numpy')
+x_numeric = sm.lambdify(t, numerical_solution, 'numpy')
 x_vals = x_numeric(t_domain)
 
 # Plot the function
 plt.plot(t_domain, x_vals)
 plt.xlabel('t')
 plt.ylabel('x(t)')
-plt.title('mass damper system with initial displacement')
+plt.title('mass damper system with initial dismlacement')
 plt.grid(True)
 plt.show()
