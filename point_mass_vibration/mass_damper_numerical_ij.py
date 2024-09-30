@@ -1,6 +1,5 @@
 import numpy as np
 import scipy as sp
-import scipy.integrate as scint
 import matplotlib.pyplot as plt
 
 # first doing it in python and then converting to julia
@@ -8,7 +7,7 @@ import matplotlib.pyplot as plt
 # define domain and mesh
 t_start = 0
 t_end = 50
-n_intervals = 1000
+n_intervals = 30000
 h = (t_end-t_start) / n_intervals
 t_domain = np.linspace(t_start, t_end-h, n_intervals)
 
@@ -27,6 +26,11 @@ b = np.zeros(n_intervals)
 b[0] = -1*(T+S)
 b[1] = -1*T
 
+# solve
 x = np.linalg.solve(A, b)
+
+# plot
+plt.figure()
 plt.plot(t_domain, x)
+plt.grid(True)
 plt.show()
