@@ -5,7 +5,7 @@ using Plots
 # define domain and mesh
 t_start = 0.0
 t_end = 50.0
-n_intervals = 30000
+n_intervals = 1000
 h = (t_end - t_start) / n_intervals
 t_domain = range(t_start, stop=t_end - h, length=n_intervals)
 

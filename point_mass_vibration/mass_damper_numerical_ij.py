@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 # define domain and mesh
 t_start = 0
-t_end = 50
-n_intervals = 30000
+t_end = 5
+n_intervals = 100000
 h = (t_end-t_start) / n_intervals
 t_domain = np.linspace(t_start, t_end-h, n_intervals)
 
