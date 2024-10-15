@@ -36,7 +36,7 @@ u0 = [x10, x20, x1dot0, x2dot0]
 param = [m1, m2, k1, k2, c1, c2]
 
 ode = ODEProblem(equation!, u0, (0.0, tfinal), param)
-ode_sol = solve(ode)
+ode_sol = solve(ode, abstol= 1e-6, reltol =1e-6)
 
 ode_time = ode_sol.t
 
