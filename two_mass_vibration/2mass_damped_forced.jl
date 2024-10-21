@@ -3,16 +3,16 @@ using DifferentialEquations
 using SymPy
 
 # Parameters for ODE, Numerical, and Analytical solutions
-k1 = 5.0      
-m1 = 1.0       
-c1 = 0.2  
+k1 = 5.0
+m1 = 1.0
+c1 = 0.2
 k2 = 10.0
 m2 = 2.0
-c2 = 0.4     
-x10 = 2.0 
-x20 = 1.0  
-x1dot0 = 0.0 
-x2dot0 = 0.0 
+c2 = 0.4
+x10 = 2.0
+x20 = 1.0
+x1dot0 = 0.0
+x2dot0 = 0.0
 dt = 0.01
 tfinal = 20.0
 time = collect(0:dt:tfinal)
