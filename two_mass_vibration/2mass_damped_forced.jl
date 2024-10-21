@@ -14,7 +14,7 @@ x20 = 1.0
 x1dot0 = 0.0
 x2dot0 = 0.0
 dt = 0.01
-tfinal = 20.0
+tfinal = 50.0
 time = collect(0:dt:tfinal)
 
 # External force function
@@ -36,9 +36,10 @@ u0 = [x10, x20, x1dot0, x2dot0]
 param = [m1, m2, k1, k2, c1, c2]
 
 ode = ODEProblem(equation!, u0, (0.0, tfinal), param)
-ode_sol = solve(ode, Trapezoid(), dt=dt, saveat=time)
+ode_sol = solve(ode, abstol= 1e-6, reltol =1e-6)
 
 ode_time = ode_sol.t
+
 x1_position_ode = ode_sol[1, :]  
 x2_position_ode = ode_sol[2, :]
 
@@ -121,24 +122,4 @@ plot2 = plot(ode_time, x2_position_ode, label="Mass 2 (ODE)", color=:blue, lw=2,
 plot!(plot2, time, x2_position_numerical, label="Mass 2 (Numerical)", color=:red, lw=2)
 plot!(plot2, time, x2_position_analytical, label="Mass 2 (Analytical)", color=:green, lw=2)
 
-#RMSE
-rmse1_numvsana = sqrt.((x1_position_numerical .- x1_position_analytical).^2)
-rmse1_odevsana = sqrt.((x1_position_ode .- x1_position_analytical).^2)
-
-p1 = plot(time, rmse1_numvsana, label="Numerical vs Analytical", color=:red, lw=2,
-           title="RMSE between Numerical and Analytical Solutions for X1",
-           xlabel="Time (s)", ylabel="RMSE",
-           legend=:topright, grid=true)
-plot!(p1, time, rmse1_odevsana, label="ODE vs Analytical", color=:blue, lw=2)
-
-rmse2_numvsana = sqrt.((x2_position_numerical .- x2_position_analytical).^2)
-rmse2_odevsana = sqrt.((x2_position_ode .- x2_position_analytical).^2)
-
-p2 = plot(time, rmse2_numvsana, label="Numerical vs Analytical", color=:red, lw=2,
-           title="RMSE between Numerical and Analytical Solutions for X2",
-           xlabel="Time (s)", ylabel="RMSE",
-           legend=:topright, grid=true)
-plot!(p2, time, rmse2_odevsana, label="ODE vs Analytical", color=:blue, lw=2)
-
-
-plot(plot1, p1, plot2, p2, layout=(2, 2), size=(1400, 1000))
+plot(plot1, plot2, layout=(2, 1), size=(1400, 1000))
