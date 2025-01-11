@@ -1,8 +1,8 @@
 using Plots
 using LinearAlgebra
 
-n = 1000  # Number of nodes 
-L = 5.0  # Beam length
+n = 100 # Number of nodes 
+L = 5  # Beam length
 EI = 70e6 * 5e-6  # Flexural rigidity
 
 x = range(0.0, L, length=n)
@@ -12,57 +12,47 @@ function assemble_matrix(n, dx)
     # Fourth order derivative discretization
     A = zeros(n, n)
     for i in 3:n-2
-        A[i, i-2] = 1.0
-        A[i, i-1] = -4.0
-        A[i, i] = 6.0
-        A[i, i+1] = -4.0
-        A[i, i+2] = 1.0
+        A[i, i-2:i+2] = [1.0, -4.0, 6.0, -4.0, 1.0]
     end
-    return A / dx^4
+    A[1, 1:3] = [6.0, -4.0, 1.0]
+    A[end, end-2: end] = [1.0, -4.0, 6.0]
+    A[2, 1:4] = [-4.0, 6.0, -4.0, 1.0]
+    A[end-1, end-3:end] = [1.0, -4.0, 6.0, -4.0]
+    return A 
 end
 
-function apply_boundary_conditions_simply_supported(A, rhs, n, dx)
-    # w(0) = 0, w(L) = 0
-    A[1, :] .= 0.0
-    A[1, 1] = 1.0
-    A[end, :] .= 0.0
-    A[end, end] = 1.0
+function apply_boundary_conditions(left, right, A, rhs, n, dx)
 
-    # w''(0) = 0, w''(L) = 0
-    A[2, :] .= 0.0
-    A[2, 1:3] = [1.0, -2.0, 1.0] / dx^2
-    A[end-1, :] .= 0.0
-    A[end-1, end-2:end] = [1.0, -2.0, 1.0] / dx^2
+    k1 = 6
+    k2 = -4
+    k3 = 1
 
-    rhs[1] = 0.0
-    rhs[2] = 0.0
-    rhs[end-1] = 0.0
-    rhs[end] = 0.0
+    if left == "cl"
+        A[1, 2] += k2
+        A[1, 3] += k3
+        A[2, 2] += k3
+        A[1, :] .= 0; A[1, 1] = 1
+    elseif left == "fr"
+        A[1, 1] += k2 + 4k3; A[1, 2] += k2 - 4k3; A[1, 3] += -k2 + k3
+        A[2, 1] += k3; A[2, 2] += k3; A[2, 3] += -k3
+    elseif left == "ss"
+        A[1, 2] += -k2; A[1, 3] += -k3; A[2, 2] += -k3
+        A[1, :] .= 0; A[1, 1] = 1
+    end
 
-    return A, rhs
-end
+    if right == "cl"
+        A[end-1, end-1] += k3; A[end, end-2] += k3; A[end, end-1] += k2
+        A[end, :] .= 0; A[end, end] = 1
+    elseif right == "fr"
+        A[end, end] += k2 + 4k3; A[end, end-1] += k2 - 4k3; A[end, end-2] += -k2 + k3
+        A[end-1, end] += k3; A[end-1, end-1] += k3; A[end-1, end-2] += -k3
+    elseif right == "ss"
+        A[end-1, end-1] += -k3; A[end, end-2] += -k3; A[end, end-1] += -k2
+        A[end, :] .= 0; A[end, end] = 1
+    end
 
-function apply_boundary_conditions_clamped(A, rhs, n, dx)
-    # w(0) = 0, w'(0) = 0
-
-    A[1, :] .= 0.0
-    A[1, 1] = 1.0  
-
-    A[2, :] .= 0.0
-    A[2, 1] = -1.0 / dx  
-    A[2, 2] = 1.0 / dx
-    # w''(L) = 0, w'''(L) = 0
-
-    A[end, :] .= 0.0
-    A[end, end-2:end] = [-1.0, 2.0, -1.0] / dx^2 
-    A[end-1, :] .= 0.0
-    A[end-1, end-3:end] = [1.0, -3.0, 3.0, -1.0] / dx^3  
-
-    rhs[1] = 0.0  
     rhs[2] = 0.0 
     rhs[end-1] = 0.0  
-    rhs[end] = 0.0  
-
     return A, rhs
 end
 
@@ -79,10 +69,41 @@ function linear_load(n, L, EI, x)
 end
 
 A0 = assemble_matrix(n, dx)
-rhs = uniform_load(n, L, EI, x)
-A, rhs = apply_boundary_conditions_clamped(A0, rhs, n, dx)
-w = A \ rhs
 
+rhs = uniform_load(n, L, EI, x)
+A, rhs = apply_boundary_conditions("cl", "fr", A0, rhs, n, dx) 
+A = A/dx^4
+
+####   MODAL ANALYSIS
+
+
+eigvalues, eigvectors = eigen(A)
+
+# Normalize eigenvector signs
+for i in 1:size(eigvectors, 2)
+    idx = findfirst(abs.(eigvectors[:, i]) .> 1e-8)  
+    if eigvectors[idx, i] < 0
+        eigvectors[:, i] .= -eigvectors[:, i]  
+    end
+end
+# Compute frequencies and sort eigenvalues and eigenvectors
+frequencies = sqrt.(abs.(eigvalues))  
+sorted_indices = sortperm(frequencies)  
+eigvalues_sorted = eigvalues[sorted_indices]
+eigvectors_sorted = eigvectors[:, sorted_indices]
+frequencies_sorted = frequencies[sorted_indices]
+# Plot the first 6 modes
+plot(x, eigvectors_sorted[:, 1], label="Mode 1, Frequency=$(round(frequencies_sorted[1], digits=2))", legend=:bottomleft)
+for i in 2:6
+    plot!(x, eigvectors_sorted[:, i], label="Mode $(i), Frequency=$(round(frequencies_sorted[i], digits=2))")
+end
+title!("Eigenvectors with Lowest Frequencies")
+xlabel!("x (m)")
+ylabel!("Amplitude")
+
+####   STATIC DEFLECTION
+
+w = A \ rhs
 max_deflection = minimum(w)
 max_deflection_location = x[argmin(w)]
 
@@ -90,16 +111,3 @@ max_deflection_location = x[argmin(w)]
 println("Maximum Deflection: ", max_deflection, " at x = ", max_deflection_location)
 
 plot(x, w, label="Deflection w",xlabel="x (m)", ylabel="Deflection (mm)",title="Beam Deflection",legend=:top)
-
-eigvals, eigvecs = eigen(A)
-
-plot_eigenshapes = plot(x, eigvecs[:, 1], label="Mode 1", legend=:topright)
-for i in 2:5
-    plot!(plot_eigenshapes, x, eigvecs[:, i], label="Mode $(i)")
-end
-
-title!("Modes of the Beam")
-xlabel!("x (m)")
-ylabel!("Amplitude")
-
-          
