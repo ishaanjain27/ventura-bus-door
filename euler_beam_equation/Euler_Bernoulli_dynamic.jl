@@ -4,11 +4,11 @@ using LinearAlgebra
 using SparseArrays
 
 # Parameters
-n = 100  # Number of nodes
+n = 50  # Number of nodes
 L = 5.0  # Beam length
-EI = 70e6 * 5e-6  # Flexural rigidity (kPa * m^4)
-mu = 1.0  # Mass density
-c = 0.5  #damping coefficient
+EI = 70e9 * 5e-6  # Flexural rigidity (GPa * m^4)
+mu = 27.0  # Mass density
+c = 0  #damping coefficient (critically damping c = 6750)
 spring_stiffness_left = 100
 spring_stiffness_right = 100
 
@@ -17,14 +17,8 @@ dx = L / (n-1)
 
 # Assemble matrix for fourth-order derivative discretization
 function assemble_matrix(n, dx)
-    A = spzeros(n, n)
-    for i in 3:n-2
-        A[i, i-2:i+2] = [1.0, -4.0, 6.0, -4.0, 1.0]
-    end
-    A[1, 1:3] = [6.0, -4.0, 1.0]
-    A[end, end-2:end] = [1.0, -4.0, 6.0]
-    A[2, 1:4] = [-4.0, 6.0, -4.0, 1.0]
-    A[end-1, end-3:end] = [1.0, -4.0, 6.0, -4.0]
+    e = ones(n)
+    A = spdiagm(-2 => 1*e[3:end], -1 => -4*e[2:end], 0 => 6*e, 1 => -4*e[2:end], 2 => 1*e[3:end])
     return A
 end
 
@@ -79,11 +73,11 @@ function beam_solver(A, q, mu, c, n, x, EI)
     end
 
     u0 = zeros(2n) # Initial conditions
-    tspan = (0.0, 10.0)
+    tspan = (0.0, 2.0)
     params = (EI, mu, q, A, c)
 
     prob = ODEProblem(beam_ode!, u0, tspan, params)
-    sol = solve(prob, ImplicitEuler(), saveat=0.1)
+    sol = solve(prob, Tsit5())
 
     return sol
 end
@@ -93,16 +87,18 @@ end
 @time begin
     A0 = assemble_matrix(n, dx)
     q = uniform_load(n)
-    A, q = apply_boundary_conditions("ss", "ss", A0, q, n, dx)
+    A, q = apply_boundary_conditions("cl", "fr", A0, q, n, dx)
     A = A / dx^4
 
     sol = beam_solver(A, q, mu, c, n, x, EI)
 end
 # Animation of beam deflection
-w = sol[1:n, :]
+w = sol[1:n, :] * 10^3
 times = sol.t
+frame_count = 500  # Desired number of frames
+step_size = max(1, div(length(times), frame_count))
 
-anim = @animate for i in 1:length(times)
+anim = @animate for i in 1:step_size:length(times)
     plot(x, w[:, i], xlabel="x (m)", ylabel="w (mm)", label="Deflection",
          title="Beam Deflection at t = $(round(times[i], digits=2)) s", legend=false, ylims = (-100, 100), xlims = (0, 6))
 end

@@ -1,9 +1,10 @@
 using Plots
 using LinearAlgebra
-
+using SparseArrays
+using Arpack
 n = 100 # Number of nodes 
 L = 5  # Beam length
-EI = 70e6 * 5e-6  # Flexural rigidity
+EI = 70e9 * 5e-6  # Flexural rigidity
 spring_stiffness_left = 100
 spring_stiffness_right = 1000
 
@@ -11,16 +12,9 @@ x = range(0.0, L, length=n)
 dx = L / (n-1)
 
 function assemble_matrix(n, dx)
-    # Fourth order derivative discretization
-    A = zeros(n, n)
-    for i in 3:n-2
-        A[i, i-2:i+2] = [1.0, -4.0, 6.0, -4.0, 1.0]
-    end
-    A[1, 1:3] = [6.0, -4.0, 1.0]
-    A[end, end-2: end] = [1.0, -4.0, 6.0]
-    A[2, 1:4] = [-4.0, 6.0, -4.0, 1.0]
-    A[end-1, end-3:end] = [1.0, -4.0, 6.0, -4.0]
-    return A 
+    e = ones(n)
+    A = spdiagm(-2 => 1*e[3:end], -1 => -4*e[2:end], 0 => 6*e, 1 => -4*e[2:end], 2 => 1*e[3:end])
+    return A
 end
 
 # Apply boundary conditions (cl = clmaped, ss = simply supported, fr = free end, spring = with a spring at the end)
@@ -72,13 +66,13 @@ end
 A0 = assemble_matrix(n, dx)
 
 rhs = uniform_load(n, L, EI, x) #right hand side vector
-A, rhs = apply_boundary_conditions("ss", "ss", A0, rhs, n, dx) 
+A, rhs = apply_boundary_conditions("cl", "fr", A0, rhs, n, dx) 
 A = A/dx^4
 
 ####   MODAL ANALYSIS
 
 
-eigvalues, eigvectors = eigen(A)
+eigvalues, eigvectors = eigen(Matrix(A))
 
 # Normalize eigenvector signs
 for i in 1:size(eigvectors, 2)
@@ -105,6 +99,7 @@ ylabel!("Amplitude")
 ####   STATIC DEFLECTION
 
 w = A \ rhs
+w = w*10^3
 max_deflection = minimum(w)
 max_deflection_location = x[argmin(w)]
 
