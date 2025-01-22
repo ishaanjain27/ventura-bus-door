@@ -114,11 +114,7 @@ rho = 2700        # Density of plate (kg/m^3)
 
 D = ( E * h^3) / (12 * (1 - ν^2))
 
-# Calculate critical damping coefficient
-λ_max = maximum(real(eigvals(Matrix(A))))
-K_eff = D * λ_max
-M = rho * h * Lx * Ly
-c_crit = 2 * sqrt(K_eff * M)
+
 
 # Generate mesh and matrices
 N = (nx, ny)
@@ -133,6 +129,12 @@ f = uniform_load(N, q, D)
 A, f = applyBC!(A, mesh, nx, ny, f)
 
 A = A / h_spacing^4
+
+# Calculate critical damping coefficient
+λ_max = maximum(real(eigvals(Matrix(A))))
+K_eff = D * λ_max
+M = rho * h * Lx * Ly
+c_crit = 2 * sqrt(K_eff * M)
 
 function plate_dynamics!(du, u, p, t)
     D, A, f, rho, h = p
