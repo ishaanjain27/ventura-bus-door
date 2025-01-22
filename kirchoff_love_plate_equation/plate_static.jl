@@ -107,7 +107,7 @@ function plot_displacement(w, nx, ny, Lx, Ly)
     surface(
         x, y, z,
         title="Plate Deflection",
-        xlabel="x (m)", ylabel="y (m)", zlabel="mm",
+        xlabel="X (m)", ylabel="Y (m)", zlabel="Displacement (mm)",
         aspect_ratio=:auto,  
         camera=(60, 30)  
     )
@@ -144,5 +144,5 @@ A = A / h_spacing^4
 
 w = solve_plate(A, f)
 w = w*10^3
-println("The minimum displacement is: $(minimum(w))")
+println("The maximum displacement is: $(-minimum(w))")
 plot_displacement(w, nx, ny, Lx, Ly)

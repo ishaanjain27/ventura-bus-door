@@ -5,6 +5,7 @@ using BenchmarkTools
 using Plots 
 using DifferentialEquations
 
+
 #Mesh generation
 function gen_mesh(N::NTuple{2,Int}, Lx::Float64, Ly::Float64)
     mesh = (range(0, Lx, length=N[1]+1), range(0, Ly, length=N[2]+1))
@@ -113,6 +114,12 @@ rho = 2700        # Density of plate (kg/m^3)
 
 D = ( E * h^3) / (12 * (1 - ν^2))
 
+# Calculate critical damping coefficient
+λ_max = maximum(real(eigvals(Matrix(A))))
+K_eff = D * λ_max
+M = rho * h * Lx * Ly
+c_crit = 2 * sqrt(K_eff * M)
+
 # Generate mesh and matrices
 N = (nx, ny)
 mesh = gen_mesh(N, Lx, Ly)
@@ -133,7 +140,7 @@ function plate_dynamics!(du, u, p, t)
     
     du[1:N] .= u[N+1:end]
     
-    du[N+1:end] .= (f - D * A * u[1:N]) / (rho * h)
+    du[N+1:end] .= (f - D * A * u[1:N]-0.0001*c_crit*u[N+1:end]) / (rho * h)
 end
 
 # Initial conditions (zero displacement and velocity)
@@ -142,7 +149,7 @@ u0 = zeros(2 * N)
 u0[1:N] .= 0.0 
 u0[N+1:end] .= 0.0  
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 2.0)
 
 p = (D, A, f, rho, h)
 prob = ODEProblem(plate_dynamics!, u0, tspan, p)
@@ -160,12 +167,14 @@ zlims = (minimum(displacement), maximum(displacement))
 x = LinRange(0, Lx, nxp)
 y = LinRange(0, Ly, nyp)
 times = sol.t
+frame_count = 500  # Desired number of frames
+step_size = max(1, div(length(times), frame_count))
 # Create an animated 3D surface plot
-anim = @animate for i in 1:10:length(times)
-    surface(x, y, displacement[:, :, i]', title="Plate Vibration at t=$(round(times[i], digits=2)) s",
+anim = @animate for i in 1:step_size:length(times)
+    surface(x, y, displacement[:, :, i]', title="Plate Deflection at t=$(round(times[i], digits=2)) s",
             xlabel="X-axis (m)", ylabel="Y-axis (m)", zlabel="Displacement (mm)", aspect_ratio=:equal,  
             zlims=zlims)
 end
 
 # Save animation
-gif(anim, "dynamic_plate.gif", fps=30)
+gif(anim, "dynamic_plate_underdamped.gif", fps=30)

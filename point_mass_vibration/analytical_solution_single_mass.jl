@@ -17,6 +17,10 @@ sigma = 0.01 # Small width for Gaussian pulse
 
 # Define the Gaussian force function (symbolically using a small sigma)
 f(t) = F0 * DiracDelta(t-t0)
+# Define the Periodic force function
+# f(t) = 2 * sin(5 * t)
+# Define the Step force function
+# f(t) = 2 * Heaviside(t - 10)
 
 # Define the differential equation (m * x''(t) + c * x'(t) + k * x(t) = f(t))
 eq = Eq(m * diff(x_sym, t_sym, 2) + c * diff(x_sym, t_sym) + k * x_sym, f(t_sym))

@@ -8,7 +8,7 @@ n = 50  # Number of nodes
 L = 5.0  # Beam length
 EI = 70e9 * 5e-6  # Flexural rigidity (GPa * m^4)
 mu = 27.0  # Mass density
-c = 0  #damping coefficient (critically damping c = 6750)
+c = 100  #damping coefficient (critically damping c = 6750)
 spring_stiffness_left = 100
 spring_stiffness_right = 100
 
