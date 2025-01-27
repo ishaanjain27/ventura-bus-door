@@ -7,8 +7,8 @@ using SparseArrays
 n = 50  # Number of nodes
 L = 5.0  # Beam length
 EI = 70e9 * 5e-6  # Flexural rigidity (GPa * m^4)
-mu = 27.0  # Mass density
-c = 100  #damping coefficient (critically damping c = 6750)
+mu = 540.0  # Mass density
+c = 500  #damping coefficient (critically damping c = 6750)
 spring_stiffness_left = 100
 spring_stiffness_right = 100
 
@@ -73,7 +73,7 @@ function beam_solver(A, q, mu, c, n, x, EI)
     end
 
     u0 = zeros(2n) # Initial conditions
-    tspan = (0.0, 2.0)
+    tspan = (0.0, 5.0)
     params = (EI, mu, q, A, c)
 
     prob = ODEProblem(beam_ode!, u0, tspan, params)
@@ -87,7 +87,7 @@ end
 @time begin
     A0 = assemble_matrix(n, dx)
     q = uniform_load(n)
-    A, q = apply_boundary_conditions("cl", "fr", A0, q, n, dx)
+    A, q = apply_boundary_conditions("cl", "spring", A0, q, n, dx)
     A = A / dx^4
 
     sol = beam_solver(A, q, mu, c, n, x, EI)
@@ -102,4 +102,4 @@ anim = @animate for i in 1:step_size:length(times)
     plot(x, w[:, i], xlabel="x (m)", ylabel="w (mm)", label="Deflection",
          title="Beam Deflection at t = $(round(times[i], digits=2)) s", legend=false, ylims = (-100, 100), xlims = (0, 6))
 end
-gif(anim, "beam_deflection.gif", fps=30)
+gif(anim, "beam_deflection_spring.gif", fps=30)

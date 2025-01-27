@@ -6,7 +6,7 @@ n = 100 # Number of nodes
 L = 5  # Beam length
 EI = 70e9 * 5e-6  # Flexural rigidity
 spring_stiffness_left = 100
-spring_stiffness_right = 1000
+spring_stiffness_right = 100000
 
 x = range(0.0, L, length=n)
 dx = L / (n-1)
@@ -66,7 +66,7 @@ end
 A0 = assemble_matrix(n, dx)
 
 rhs = uniform_load(n, L, EI, x) #right hand side vector
-A, rhs = apply_boundary_conditions("cl", "fr", A0, rhs, n, dx) 
+A, rhs = apply_boundary_conditions("cl", "spring", A0, rhs, n, dx) 
 A = A/dx^4
 
 ####   MODAL ANALYSIS
@@ -98,13 +98,13 @@ ylabel!("Amplitude")
 
 ####   STATIC DEFLECTION
 
-w = A \ rhs
-w = w*10^3
-max_deflection = minimum(w)
-max_deflection_location = x[argmin(w)]
+# w = A \ rhs
+# w = w*10^3
+# max_deflection = minimum(w)
+# max_deflection_location = x[argmin(w)]
 
 
-println("Maximum Deflection: ", max_deflection, " at x = ", max_deflection_location)
+# println("Maximum Deflection: ", max_deflection, " at x = ", max_deflection_location)
 
-plot(x, w, label="Deflection w",xlabel="x (m)", ylabel="Deflection (mm)",title="Beam Deflection",legend=:top)
+# plot(x, w, label="Deflection w",xlabel="x (m)", ylabel="Deflection (mm)",title="Beam Deflection",legend=:top)
 

@@ -103,6 +103,26 @@ function uniform_load(n, q, D)
     return -load
 end
 
+# Point load function for 2D plate
+function point_load(n, F, D)
+    nx, ny = n
+    load = fill(0, (nx + 1) * (ny + 1))
+    load[7*div((nx+1)*(ny+1),12)] = F
+    load[div((nx+1)*(ny+1),12)] = -F
+    return -load
+end
+
+# Partially Distributed Load function for 2D plate
+function distributed_load(n, F, D, node_indices)
+    nx, ny = n
+    load = fill(0.0, (nx + 1) * (ny + 1))
+    for idx in node_indices
+        load[idx] = F/length(node_indices)
+    end
+
+    return -load  
+end
+
 # Parameters
 E = 70e9       # Young's modulus (Pa)
 h = 0.01        # Plate thickness (m)
@@ -111,10 +131,9 @@ q = 1000.0      # Uniform load (N/m^2)
 nx, ny = 20, 20   # Number of intervals (keep them equal)
 Lx, Ly = 2.0, 2.0  # Plate dimensions (m)
 rho = 2700        # Density of plate (kg/m^3)
+F = 1000.0       #Force function (N)
 
 D = ( E * h^3) / (12 * (1 - ν^2))
-
-
 
 # Generate mesh and matrices
 N = (nx, ny)
@@ -124,7 +143,7 @@ A = gen_stiffmat(mesh)
 A = (A * A) 
 
 # Load vector
-f = uniform_load(N, q, D)
+f = point_load(N, F, D)
 
 A, f = applyBC!(A, mesh, nx, ny, f)
 
@@ -155,7 +174,7 @@ tspan = (0.0, 2.0)
 
 p = (D, A, f, rho, h)
 prob = ODEProblem(plate_dynamics!, u0, tspan, p)
-sol = solve(prob, Tsit5())
+sol = solve(prob, Tsit5(), abstol = 10e-9, reltol = 10e-9)
 
 println("Solution Ready")
 
@@ -174,9 +193,9 @@ step_size = max(1, div(length(times), frame_count))
 # Create an animated 3D surface plot
 anim = @animate for i in 1:step_size:length(times)
     surface(x, y, displacement[:, :, i]', title="Plate Deflection at t=$(round(times[i], digits=2)) s",
-            xlabel="X-axis (m)", ylabel="Y-axis (m)", zlabel="Displacement (mm)", aspect_ratio=:equal,  
+            xlabel="X-axis (m)", ylabel="Y-axis (m)", zlabel="Displacement (mm)",  
             zlims=zlims)
 end
 
 # Save animation
-gif(anim, "dynamic_plate_underdamped.gif", fps=30)
+gif(anim, "dynamic_plate_point_underdamped.gif", fps=30)
