@@ -40,13 +40,12 @@ function gen_stiffmat(r::NTuple{2,AbstractRange})
 end
 
 #Boundary Conditions
-#Boundary Conditions
 function applyBC!(A::SparseMatrixCSC, mesh, nx, ny, load, h_spacing, D)
 
     Nx = nx+1
     Ny = ny+1
     N = Nx*Ny
-    k=10000
+    k=10000            #k=0 means no spring so cantilever plate
     c=-k*2*h_spacing^3/D
 
     # South boundary (w=0)
