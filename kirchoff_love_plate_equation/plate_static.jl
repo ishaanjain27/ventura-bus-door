@@ -99,20 +99,6 @@ function solve_plate(A, f)
     return A \ f
 end
 
-# Plot results
-function plot_displacement(w, nx, ny, Lx, Ly)
-    x = range(0, Lx, length=nx + 1)
-    y = range(0, Ly, length=ny + 1)
-    z = reshape(w, nx + 1, ny + 1) 
-    surface(
-        x, y, z,
-        title="Plate Deflection",
-        xlabel="X (m)", ylabel="Y (m)", zlabel="Displacement (mm)",
-        aspect_ratio=:auto,  
-        camera=(60, 30)  
-    )
-end
-
 # Uniform load function for 2D plate
 function uniform_load(n, q, D)
     nx, ny = n
@@ -125,22 +111,57 @@ E = 70e9       # Young's modulus (Pa)
 h = 0.01        # Plate thickness (m)
 ν = 0.3         # Poisson's ratio
 q = 1000.0      # Uniform load (N/m^2)
-nx, ny = 50, 50   # Number of intervals (keep them equal)
-Lx, Ly = 2.0, 2.0  # Plate dimensions (m)
+nx, ny = 50, 25   # Number of intervals (keep spacing equal)
+Lx, Ly = 2.0, 1.  # Plate dimensions (m)
 h_spacing = Lx/nx
 
 D = (E * h^3) / (12 * (1 - ν^2))
 # Generate mesh and matrices
-N = (nx, ny)
+N = (ny, nx)
 mesh = gen_mesh(N, Lx, Ly)
 A = gen_stiffmat(mesh)
 A = (A * A) 
 
+# function plot_sparsity(A::SparseMatrixCSC; markersize=3, color=:black)
+#     rows, cols, _ = findnz(A)  # Get the indices of non-zero entries
+#     scatter(
+#         cols, rows,
+#         color=color,
+#         markersize=markersize,
+#         xlabel="Columns",
+#         ylabel="Rows",
+#         title="Sparsity Pattern",
+#         legend=false,
+#         aspect_ratio=:equal,  # Ensures square scaling of the axes
+#         yflip=true  # Flips the rows for matrix-style orientation
+#     )
+# end
+
 # Load vector
 f = uniform_load(N, q, D)
-
 A, f = applyBC!(A, mesh, nx, ny, f)
 A = A / h_spacing^4
+
+# plot_sparsity_fixed(A, markersize=3, color=:black)
+
+# Plot results
+function plot_displacement(w, nx, ny, Lx, Ly)
+    x = range(0, Lx, length=nx + 1)
+    y = range(0, Ly, length=ny + 1)
+    z = reshape(w, nx + 1, ny + 1)'
+    # surface(
+    #     x, y, z,
+    #     title="Plate Deflection",
+    #     xlabel="X (m)", ylabel="Y (m)", zlabel="Displacement (mm)",
+    #     aspect_ratio=Ly/Lx,  
+    #     camera=(60, 30)
+    # )
+    ####### if you want wireframe plot comment the above and uncomment the below
+    wireframe(x, y, z, title="Plate Deflection",
+    xlabel="X (m)", ylabel="Y (m)", zlabel="Displacement (mm)", 
+    linewidth=0.5, linecolor=:black, aspect_ratio=Ly/Lx) 
+    
+end
 
 w = solve_plate(A, f)
 w = w*10^3

@@ -1,3 +1,5 @@
+####### CANTILEVER PLATE WITH SPRING BOUNDARY 
+
 using StaticArrays 
 using SparseArrays
 using LinearAlgebra 
@@ -38,60 +40,125 @@ function gen_stiffmat(r::NTuple{2,AbstractRange})
 end
 
 #Boundary Conditions
-function applyBC!(A::SparseMatrixCSC, mesh, nx, ny, load)
+#Boundary Conditions
+function applyBC!(A::SparseMatrixCSC, mesh, nx, ny, load, h_spacing, D)
+
+    Nx = nx+1
+    Ny = ny+1
+    N = Nx*Ny
+    k=10000
+    c=-k*2*h_spacing^3/D
 
     # South boundary (w=0)
-    for i in 1:(nx + 1)
+    for i in 1:(Nx)
         A[i, :] .= 0.0
         A[i, i] = 1.0
         load[i] = 0.0
     end
 
-    # North boundary (w=0)
-    for i in 0:(nx)
-        A[end-i, :] .= 0.0
-        A[end-i, end-i] = 1.0
-        load[end-i] = 0
+    #############################
+
+    i=Nx+1
+    A[i,i] = 16.0; A[i,i+1] = -20.0; A[i,i+2] = 10.0
+    A[i,i-Nx] = -6.0; A[i,i-Nx+1] = 4.0; A[i,i-Nx+2] = -2.0
+    A[i,i+Nx] = -6.0; A[i,i+Nx+1] = 4.0; A[i,i+Nx+2] = -2.0
+    A[i,i+2*Nx] = 2.0
+
+    i=Nx+2
+    A[i, i-1] = -7.0; A[i,i] = 21.0; A[i,i+1] = -9.0; A[i,i+2] = 1.0
+    A[i,i+2*Nx] = 2.0
+
+    for i in (Nx+3):(2*Nx-2)
+        A[i,i+2*Nx] = 2.0
     end
 
-    # East and West boundary (w=0)
-    for i in 2:(ny+1)
-        idx = (i - 1) * (nx + 1) 
-        A[idx, :] .= 0.0
-        A[idx, idx] = 1.0
-        load[idx] = 0.0
-        if i == (ny+1)
-            idx = i * (nx + 1)
-            A[idx, :] .= 0.0
-            A[idx, idx] = 1.0
-            load[idx] = 0.0
-        end
-        idx = (i - 1) * (nx + 1) + 1  
-        A[idx, :] .= 0.0
-        A[idx, idx] = 1.0
-        load[idx] = 0.0
+    i=2*Nx-1
+    A[i,i-2] = 1.0; A[i,i-1] = -9.0; A[i,i] = 21.0; A[i, i+1] = -7.0
+    A[i,i+2*Nx] = 2.0
+
+    i=2*Nx
+    A[i,i-2] = 10.0; A[i,i-1] = -20.0; A[i,i] = 16.0
+    A[i,i-Nx-2] = -2.0; A[i,i-Nx-1] = 4.0; A[i,i-Nx] = -6.0
+    A[i,i+Nx-2] = -2.0; A[i,i+Nx-1] = 4.0; A[i,i+Nx] = -6.0
+    A[i,i+2*Nx] = 2.0
+
+    ##################
+
+    for i in (2*Nx+1):Nx:(N-3*Nx+1)
+        A[i,i] = 16.0; A[i,i+1] = -20.0; A[i,i+2] = 10.0
+        A[i,i-Nx] = -6.0; A[i,i-Nx+1] = 4.0; A[i,i-Nx+2] = -2.0
+        A[i,i+Nx] = -6.0; A[i,i+Nx+1] = 4.0; A[i,i+Nx+2] = -2.0
     end
 
-    # South West, South East, North West, North East corners (right next to the boundaries) => w'' = 0
-    A[nx+3, nx+3] = A[2*(nx+1)-1, 2*(nx+1)-1] = A[end - nx - 2,end - nx - 2] = A[end - (2*(nx+1) - 2),end - (2*(nx+1) - 2)] = 18.0
-
-    # One above south boundary => w'' = 0
-    for i in (nx + 4) : (2*(nx+1)-2)
-        A[i,i] = 19.0
+    for i in (2*Nx+2):Nx:(N-3*Nx+2)
+        A[i, i-1] = -7.0; A[i,i] = 21.0; A[i,i+1] = -9.0; A[i,i+2] = 1.0
+    end
+    
+    for i in (3*Nx-1):Nx:(N-2*Nx-1)
+        A[i,i-2] = 1.0; A[i,i-1] = -9.0; A[i,i] = 21.0; A[i, i+1] = -7.0
+    end
+    
+    for i in (3*Nx):Nx:(N-2*Nx)
+        A[i,i-2] = 10.0; A[i,i-1] = -20.0; A[i,i] = 16.0
+        A[i,i-Nx-2] = -2.0; A[i,i-Nx-1] = 4.0; A[i,i-Nx] = -6.0
+        A[i,i+Nx-2] = -2.0; A[i,i+Nx-1] = 4.0; A[i,i+Nx] = -6.0
     end
 
-    # One below north boundary => w'' = 0
-    for i in (nx+3) : (2*(nx+1)-3)
-        A[end-i, end-i] = 19.0
-    end 
+    #################
 
-    # One next to west boundary and one next to east boundary => w'' = 0
-    for i in 1:(ny-3)
-        idx = (i+1)*(nx+1)+2
-        A[idx,idx] = 19.0
-        idx += (nx-2)
-        A[idx,idx] = 19.0
+    i=N-2*Nx+1
+    A[i,i] = 17.0; A[i,i+1] = -20.0; A[i,i+2] = 10.0
+    A[i,i-Nx] = -7.0; A[i,i-Nx+1] = 4.0; A[i,i-Nx+2] = -2.0
+    A[i,i+Nx] = c/2 - 5.0; A[i,i+Nx+1] = 4.0; A[i,i+Nx+2] = -2.0
+
+    i=N-2*Nx+2
+    A[i,i-1] = -7.0; A[i,i] = 22.0; A[i,i+1] = -9.0; A[i,i+2] = 1.0
+    A[i,i-Nx] = -9.0;
+    A[i,i+Nx] = c/2-7.0; 
+
+    for i in (N-2*Nx+3):(N-Nx-2)
+        A[i,i] = 21.0
+        A[i,i-Nx] = -9.0
+        A[i,i+Nx] = c/2-7.0
     end
+
+    i=N-Nx-1
+    A[i,i-2] = 1.0; A[i,i-1] = -9.0; A[i,i] = 22.0; A[i,i+1] = -7.0;
+    A[i,i-Nx] = -9.0;
+    A[i,i+Nx] = c/2-7.0; 
+
+    i=N-Nx
+    A[i,i-2] = 10.0; A[i,i-1] = -20.0; A[i,i] = 17.0
+    A[i,i-Nx-2] = -2.0; A[i,i-Nx-1] = 4.0; A[i,i-Nx] = -7.0
+    A[i,i+Nx-2] = -2.0; A[i,i+Nx-1] = 4.0; A[i,i+Nx] = c/2 - 5.0
+
+    #################
+
+    i=N-Nx+1
+    A[i,i] = -4.0*c+14.0; A[i,i+1] = 2.0*c-16.0; A[i,i+2] = -c+8.0
+    A[i,i-Nx] = -16.0; A[i,i-Nx+1] = 8.0; A[i,i-Nx+2] = -4.0
+    A[i,i-2*Nx] = 8.0; A[i,i-2*Nx+1] = -4.0; A[i,i-2*Nx+2] = 2.0
+
+    i=N-Nx+2
+    A[i,i-1] = c-5.0; A[i,i] = -5.0*c+17.0; A[i,i+1] = c-7.0; A[i,i+2] = 1.0
+    A[i,i-Nx-1] = 4.0; A[i,i-Nx] = -20.0; A[i,i-Nx+1] = 4.0
+    A[i,i-2*Nx-1] = -2.0; A[i,i-2*Nx] = 10.0; A[i,i-2*Nx+1] = -2.0
+
+    for i in (N-Nx+3):(N-2)
+        A[i,i-1] = c-6.0; A[i,i] = -5.0*c+16.0; A[i,i+1] = c-6.0
+        A[i,i-Nx-1] = 4.0; A[i,i-Nx] = -20.0; A[i,i-Nx+1] = 4.0
+        A[i,i-2*Nx-1] = -2.0; A[i,i-2*Nx] = 10.0; A[i,i-2*Nx+1] = -2.0
+    end
+
+    i=N-1
+    A[i,i-2] = 1.0; A[i,i-1] = c-7.0; A[i,i] = -5.0*c+17.0; A[i,i+1] = c-5.0
+    A[i,i-Nx-1] = 4.0; A[i,i-Nx] = -20.0; A[i,i-Nx+1] = 4.0
+    A[i,i-2*Nx-1] = -2.0; A[i,i-2*Nx] = 10.0; A[i,i-2*Nx+1] = -2.0
+
+    i=N
+    A[i,i-2] = -c+8.0; A[i,i-1] = 2.0*c-16.0; A[i,i] = -4.0*c+14.0
+    A[i,i-Nx-2] = -4.0; A[i,i-Nx-1] = 8.0;A[i,i-Nx] = -16.0
+    A[i,i-2*Nx-2] = 2.0; A[i,i-2*Nx-1] = -4.0; A[i,i-2*Nx] = 8.0
 
     return A, load
 end
@@ -128,8 +195,8 @@ E = 70e9       # Young's modulus (Pa)
 h = 0.01        # Plate thickness (m)
 ν = 0.3         # Poisson's ratio
 q = 1000.0      # Uniform load (N/m^2)
-nx, ny = 20, 10   # Number of intervals (keep them equal)
-Lx, Ly = 2.0, 1.0  # Plate dimensions (m)
+nx, ny = 20, 20   # Number of intervals (keep them equal)
+Lx, Ly = 2.0, 2.0  # Plate dimensions (m)
 rho = 2700        # Density of plate (kg/m^3)
 F = 1000.0       #Force function (N)
 
@@ -143,9 +210,9 @@ A = gen_stiffmat(mesh)
 A = (A * A) 
 
 # Load vector
-f = uniform_load(N, F, D) #choose load
+f = point_load(N, F, D) #choose load
 
-A, f = applyBC!(A, mesh, nx, ny, f)
+A, f = applyBC!(A, mesh, nx, ny, f, h_spacing, D)
 
 A = A / h_spacing^4
 
@@ -201,4 +268,4 @@ anim = @animate for i in 1:step_size:length(times)
 end
 
 # Save animation
-gif(anim, "dynamic_plate.gif", fps=30)
+gif(anim, "dynamic_plate_spring.gif", fps=30)
